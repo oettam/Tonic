@@ -49,7 +49,7 @@ class ChordIdentifier: ObservableObject {
             if pitchSet.array.map({ $0.midiNoteNumber }).contains(pitch.midiNoteNumber) {
                 var note = pitch.note(in: detectedKey).noteClass.canonicalNote
                 let root = chord.root.canonicalNote
-                if root.noteNumber > note.noteNumber {
+                if root.noteNumber! > note.noteNumber! {
                     note = Note(note.letter, accidental: note.accidental, octave: note.octave + 1)
                 }
 

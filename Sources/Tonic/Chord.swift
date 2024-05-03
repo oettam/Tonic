@@ -288,7 +288,7 @@ extension Chord {
     public static func getRankedChords(from notes: [Note]) -> [Chord] {
         let potentialChords = ChordTable.shared.getAllChordsForNoteSet(NoteSet(notes: notes))
         if potentialChords.isEmpty { return [] }
-        let orderedNotes = notes.sorted(by: { f, s in  f.noteNumber < s.noteNumber })
+        let orderedNotes = notes.filter { $0.noteNumber != nil }.sorted(by: { f, s in  f.noteNumber! < s.noteNumber! })
         var ranks: [(Int, Chord)] = []
         for chord in potentialChords {
             let rank = orderedNotes.firstIndex(where: { $0.noteClass == chord.root })
@@ -305,7 +305,7 @@ extension Chord {
     /// - Parameter octave: octave of the chord for inversion 0
     /// - Returns: All pitches in that Chord
     public func pitches(octave: Int) -> [Pitch] {
-        return notes(octave: octave).map { $0.pitch }
+        return notes(octave: octave).map { $0.pitch }.compactMap { $0 }
     }
 
     /// Returns all Notes of a certain chord, taking into account the inversion, starting at the given octave

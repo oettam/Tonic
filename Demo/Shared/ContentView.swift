@@ -28,7 +28,7 @@ struct ContentView: View {
                           potentialChords: chordIdentifier.potentialChords,
                           genericPitchSetDescription: chordIdentifier.genericPitchSetDescription)
 
-            Keyboard(layout: .piano(pitchRange: Note(.C, octave: -1).pitch ... Note(.B, octave: 0).pitch),
+            Keyboard(layout: .piano(pitchRange: Note(.C, octave: -1).pitch! ... Note(.B, octave: 0).pitch!),
                      latching: true,
                      noteOn: chordIdentifier.noteOn,
                      noteOff: chordIdentifier.noteOff) { pitch, isActivated in

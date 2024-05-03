@@ -178,16 +178,20 @@ public enum Interval: Int, CaseIterable, Codable {
     ///   - note2: Second Note
     /// - Returns: Interval
     public static func betweenNotes(_ note1: Note, _ note2: Note) -> Interval? {
+        guard note2.pitch != nil, note1.pitch != nil else { return nil } 
         var n1 = note1
         var n2 = note2
-        if note2.pitch < note1.pitch {
+        if note2.pitch! < note1.pitch! {
             n2 = note1
             n1 = note2
         }
         var degree = n2.letter.rawValue - n1.letter.rawValue
         if degree < 0 { degree += Letter.allCases.count }
         degree += 1
-        for interval in Interval.allCases where interval.semitones == n1.semitones(to: n2) {
+        
+        guard let n1SemitonesToN2 = n1.semitones(to: n2) else { return nil }
+        
+        for interval in Interval.allCases where interval.semitones == n1SemitonesToN2 {
             if let n1Exists = n1.shiftUp(interval), n1Exists == n2 {
                 return interval
             }

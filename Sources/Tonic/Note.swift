@@ -42,7 +42,7 @@ public struct Note: Equatable, Hashable, Codable {
         var noteInKey: Note?
 
         key.noteSet.forEach { note in
-            if note.pitch.pitchClass == pitchClass {
+            if note.pitch?.pitchClass == pitchClass {
                 noteInKey = note
             }
         }
@@ -82,7 +82,7 @@ public struct Note: Equatable, Hashable, Codable {
     }
 
     /// MIDI Note 0-127 starting at C
-    public var noteNumber: Int8 {
+    public var noteNumber: Int8? {
         let octaveBounds = ((octave + 1) * 12) ... ((octave + 2) * 12)
         var note = Int(noteClass.letter.baseNote) + Int(noteClass.accidental.rawValue)
         if noteClass.letter == .B && noteClass.accidental.rawValue > 0 {
@@ -94,32 +94,35 @@ public struct Note: Equatable, Hashable, Codable {
         while !octaveBounds.contains(note) {
             note += 12
         }
-        return Int8(note)
+        return Int8(exactly: note)
     }
 
     /// The pitch for the note
-    public var pitch: Pitch {
-        return Pitch(noteNumber)
+    public var pitch: Pitch? {
+        return noteNumber != nil ? Pitch(noteNumber!) : nil
     }
 
     /// The way the note is described in a musical context (usually a key or scale)
-    public func spelling(in key: Key) -> NoteClass {
-        Note(pitch: pitch, key: key).noteClass
+    public func spelling(in key: Key) -> NoteClass? {
+        guard let pitch = pitch else { return nil }
+        return Note(pitch: pitch, key: key).noteClass
     }
 
     /// Calculate the distance in semitones to another note
     /// - Parameter next: note to which you want to know the distance
     /// - Returns: Number of semitones to the next note
-    public func semitones(to next: Note) -> Int8 {
-        pitch.semitones(to: next.pitch)
+    public func semitones(to next: Note) -> Int8? {
+        guard let nextPitch = next.pitch else { return nil }
+        return pitch?.semitones(to: nextPitch)
     }
 
     /// Shift the note down by an interval
     /// - Parameter shift: The interval by which to shift
     /// - Returns: New note the correct distance away
     public func shiftDown(_ shift: Interval) -> Note? {
+        guard let pitchMidiNoteNumber = pitch?.midiNoteNumber else { return nil }
         var newLetterIndex = (noteClass.letter.rawValue - (shift.degree - 1))
-        let newOctave = (Int(pitch.midiNoteNumber) - shift.semitones) / 12 - 1
+        let newOctave = (Int(pitchMidiNoteNumber) - shift.semitones) / 12 - 1
 
         while newLetterIndex < 0 {
             newLetterIndex += 7
@@ -128,7 +131,8 @@ public struct Note: Equatable, Hashable, Codable {
         let newLetter = Letter(rawValue: newLetterIndex % Letter.allCases.count)!
         for accidental in Accidental.allCases {
             let newNote = Note(newLetter, accidental: accidental, octave: newOctave)
-            if (newNote.noteNumber % 12) == ((Int(noteNumber) - shift.semitones) % 12) {
+            guard let newNoteNoteNumber = newNote.noteNumber, let noteNumber = noteNumber else { continue } 
+            if (newNoteNoteNumber % 12) == ((Int(noteNumber) - shift.semitones) % 12) {
                 return newNote
             }
         }
@@ -139,15 +143,17 @@ public struct Note: Equatable, Hashable, Codable {
     /// - Parameter shift: The interval by which to shift
     /// - Returns: New note the correct distance away
     public func shiftUp(_ shift: Interval) -> Note? {
+        guard let pitchMidiNoteNumber = pitch?.midiNoteNumber else { return nil }
         let newLetterIndex = (noteClass.letter.rawValue + (shift.degree - 1))
         let newLetter = Letter(rawValue: newLetterIndex % Letter.allCases.count)!
-        let newMidiNoteNumber = Int(pitch.midiNoteNumber) + shift.semitones
-        
+        let newMidiNoteNumber = Int(pitchMidiNoteNumber) + shift.semitones
+
         let newOctave = newMidiNoteNumber / 12 - 1
 
         for accidental in Accidental.allCases {
             let newNote = Note(newLetter, accidental: accidental, octave: newOctave)
-            if newNote.noteNumber % 12 == newMidiNoteNumber % 12 {
+            if let newNoteNoteNumber = newNote.noteNumber,
+               newNoteNoteNumber % 12 == newMidiNoteNumber % 12 {
                 return newNote
             }
         }
@@ -157,7 +163,13 @@ public struct Note: Equatable, Hashable, Codable {
 
 extension Note: Comparable {
     public static func < (lhs: Note, rhs: Note) -> Bool {
-        lhs.pitch < rhs.pitch
+        guard let lhsPitch = lhs.pitch,
+              let rhsPitch = rhs.pitch 
+        else {
+            return false
+        }
+
+        return lhsPitch < rhsPitch
     }
 }
 
